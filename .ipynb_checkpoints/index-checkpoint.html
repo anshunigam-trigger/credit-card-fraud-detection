@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FraudShield</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#05060f;
+  --glass:rgba(255,255,255,0.03);
+  --glass2:rgba(255,255,255,0.06);
+  --border:rgba(255,255,255,0.06);
+  --border2:rgba(255,255,255,0.12);
+  --text:#f0f0ff;
+  --muted:rgba(240,240,255,0.35);
+  --cyan:#00e5ff;
+  --purple:#7c3aed;
+  --red:#ff2d55;
+  --green:#00ff88;
+  --yellow:#ffd60a;
+}
+html{font-size:14px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* ANIMATED BACKGROUND */
+.bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+canvas#stars-canvas{position:absolute;inset:0;width:100%;height:100%}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.12;animation:float 8s ease-in-out infinite}
+.orb1{width:600px;height:600px;background:var(--purple);top:-200px;left:-100px;animation-delay:0s}
+.orb2{width:500px;height:500px;background:var(--cyan);bottom:-150px;right:-100px;animation-delay:-4s}
+.orb3{width:300px;height:300px;background:#ff2d55;top:40%;left:40%;animation-delay:-2s}
+@keyframes float{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-30px) scale(1.05)}}
+.grid-overlay{position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);background-size:60px 60px;mask:radial-gradient(ellipse 80% 80% at 50% 50%,#000 60%,transparent 100%)}
+.noise{position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");opacity:0.4}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(5,6,15,0.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);animation:slideDown 0.6s ease}
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.nav-l{display:flex;align-items:center;gap:14px}
+.nav-logo{display:flex;align-items:center;gap:9px}
+.logo-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--cyan));display:grid;place-items:center;position:relative;overflow:hidden}
+.logo-mark::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,0.2));animation:shimmer 3s ease infinite}
+@keyframes shimmer{0%,100%{transform:translateX(-100%)}50%{transform:translateX(100%)}}
+.logo-glyph{font-size:14px;font-weight:900;color:#fff;position:relative;z-index:1}
+.brand-name{font-size:15px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.6) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-sep{width:1px;height:18px;background:var(--border2)}
+.nav-sub{font-size:11px;color:var(--muted)}
+.status-pill{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);padding:5px 12px;border-radius:20px;border:1px solid rgba(0,255,136,0.2);background:rgba(0,255,136,0.05);animation:glow-green 3s ease infinite}
+@keyframes glow-green{0%,100%{box-shadow:0 0 0 rgba(0,255,136,0)}50%{box-shadow:0 0 12px rgba(0,255,136,0.15)}}
+.status-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.7)}}
+
+/* MAIN LAYOUT */
+.main{position:relative;z-index:1;display:grid;grid-template-columns:440px 1fr;min-height:calc(100vh - 56px)}
+
+/* LEFT PANEL */
+.left{padding:28px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:20px;position:relative}
+.left::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:0.3}
+
+.glass-card{background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:20px;transition:all 0.3s ease;position:relative;overflow:hidden}
+.glass-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.04) 0%,transparent 60%);pointer-events:none}
+.glass-card:hover{border-color:var(--border2);background:var(--glass2);transform:translateY(-1px)}
+
+.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent)}
+
+.tabs{display:flex;gap:2px;background:rgba(0,0,0,0.3);border-radius:8px;padding:3px;margin-bottom:16px}
+.tab{flex:1;padding:7px;font-size:11px;font-weight:500;border:none;background:transparent;color:var(--muted);border-radius:6px;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.tab.on{background:rgba(255,255,255,0.08);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.4)}
+
+/* SCENARIO CARDS */
+.scenarios{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.sc-card{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all 0.25s ease;position:relative;overflow:hidden;transform-style:preserve-3d}
+.sc-card::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity 0.25s}
+.sc-card:hover{transform:translateY(-3px) scale(1.01);box-shadow:0 8px 30px rgba(0,0,0,0.4)}
+.sc-card.sel{transform:translateY(-2px)}
+.sc-card.fraud-card:hover,.sc-card.fraud-card.sel{border-color:var(--red);box-shadow:0 0 20px rgba(255,45,85,0.15)}
+.sc-card.fraud-card.sel{background:rgba(255,45,85,0.06)}
+.sc-card.legit-card:hover,.sc-card.legit-card.sel{border-color:var(--green);box-shadow:0 0 20px rgba(0,255,136,0.12)}
+.sc-card.legit-card.sel{background:rgba(0,255,136,0.05)}
+.sc-card.suspect-card:hover,.sc-card.suspect-card.sel{border-color:var(--yellow);box-shadow:0 0 20px rgba(255,214,10,0.12)}
+.sc-card.suspect-card.sel{background:rgba(255,214,10,0.05)}
+.sc-card.online-card:hover,.sc-card.online-card.sel{border-color:var(--cyan);box-shadow:0 0 20px rgba(0,229,255,0.12)}
+.sc-card.online-card.sel{background:rgba(0,229,255,0.05)}
+
+.sc-tag{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;padding:3px 7px;border-radius:4px;display:inline-block;margin-bottom:8px}
+.t-red{color:var(--red);background:rgba(255,45,85,0.1)}
+.t-green{color:var(--green);background:rgba(0,255,136,0.08)}
+.t-yellow{color:var(--yellow);background:rgba(255,214,10,0.08)}
+.t-cyan{color:var(--cyan);background:rgba(0,229,255,0.08)}
+.sc-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px}
+.sc-desc{font-size:10px;color:var(--muted);line-height:1.4}
+
+.info-badge{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;padding:11px 13px;font-size:11px;color:var(--muted);line-height:1.6;min-height:40px}
+.info-badge b{color:var(--text);font-weight:500}
+
+.drop-zone{border:1px dashed rgba(255,255,255,0.1);border-radius:10px;padding:2rem;text-align:center;cursor:pointer;transition:all 0.2s}
+.drop-zone:hover{border-color:var(--cyan);background:rgba(0,229,255,0.04);box-shadow:0 0 20px rgba(0,229,255,0.06)}
+.drop-ico{font-size:24px;margin-bottom:6px;opacity:0.3}
+.drop-text{font-size:11px;color:var(--muted)}
+input[type=file]{display:none}
+
+/* CTA BUTTON */
+.cta-btn{width:100%;padding:13px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.2px;position:relative;overflow:hidden;transition:all 0.25s;background:linear-gradient(135deg,var(--purple),var(--cyan));color:#000}
+.cta-btn:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,229,255,0.25)}
+.cta-btn:not(:disabled):active{transform:translateY(0)}
+.cta-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 30%,rgba(255,255,255,0.15));pointer-events:none}
+.cta-btn:disabled{opacity:0.3;cursor:not-allowed;background:rgba(255,255,255,0.05);color:var(--muted)}
+.cta-btn:not(:disabled)::after{content:'';position:absolute;inset:-2px;background:linear-gradient(135deg,var(--purple),var(--cyan));border-radius:12px;z-index:-1;opacity:0;filter:blur(10px);transition:opacity 0.25s}
+.cta-btn:not(:disabled):hover::after{opacity:0.5}
+
+.model-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.model-chip{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:7px;padding:9px;text-align:center;transition:all 0.2s}
+.model-chip:hover{border-color:var(--border2);background:var(--glass)}
+.mc-val{font-size:13px;font-weight:800;letter-spacing:-0.3px;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.mc-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-top:2px}
+
+/* METRICS STRIP */
+.metrics-strip{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.metric-item{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;padding:12px;transition:all 0.2s}
+.metric-item:hover{border-color:var(--border2);transform:translateY(-1px)}
+.metric-n{font-size:18px;font-weight:800;letter-spacing:-0.5px}
+.metric-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+/* RIGHT CANVAS */
+.right{position:relative;display:flex;flex-direction:column}
+
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;opacity:0.2;animation:fadeIn 0.5s ease}
+.empty-ring{width:80px;height:80px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);display:grid;place-items:center;font-size:32px;animation:rotate-slow 20s linear infinite}
+@keyframes rotate-slow{to{transform:rotate(360deg)}}
+
+.spin-state{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.spin-ring{width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,0.1);border-top-color:var(--cyan);animation:spin 0.7s linear infinite;box-shadow:0 0 20px rgba(0,229,255,0.3)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-text{font-size:12px;color:var(--muted);animation:blink 1.5s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
+
+.result-state{display:none;flex:1;flex-direction:column;padding:32px}
+.result-state.show{display:flex;animation:fadeInUp 0.5s ease}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* SCORE DISPLAY */
+.score-section{display:flex;align-items:center;gap:32px;margin-bottom:32px;padding-bottom:32px;border-bottom:1px solid var(--border)}
+.score-gauge{position:relative;flex-shrink:0}
+.gauge-svg{width:140px;height:140px;transform:rotate(-90deg)}
+.gauge-bg{fill:none;stroke:rgba(255,255,255,0.05);stroke-width:8}
+.gauge-fill{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1),stroke 0.4s ease;stroke-dasharray:351.86;stroke-dashoffset:351.86}
+.gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.gauge-pct{font-size:28px;font-weight:900;letter-spacing:-1.5px;line-height:1}
+.gauge-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+.score-info{flex:1}
+.risk-level{font-size:36px;font-weight:900;letter-spacing:-2px;line-height:1;margin-bottom:6px}
+.risk-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.track{height:4px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-bottom:6px}
+.track-fill{height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.track-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+
+/* VERDICT */
+.verdict-card{border-radius:12px;padding:18px 20px;display:flex;align-items:center;gap:16px;margin-bottom:28px;position:relative;overflow:hidden;border:1px solid;animation:fadeIn 0.4s ease 0.2s both}
+.verdict-card::before{content:'';position:absolute;inset:0;opacity:0.06}
+.vc-block{border-color:rgba(255,45,85,0.3);background:rgba(255,45,85,0.05)}
+.vc-block::before{background:var(--red)}
+.vc-verify{border-color:rgba(255,214,10,0.3);background:rgba(255,214,10,0.05)}
+.vc-verify::before{background:var(--yellow)}
+.vc-allow{border-color:rgba(0,255,136,0.3);background:rgba(0,255,136,0.05)}
+.vc-allow::before{background:var(--green)}
+.verdict-icon-wrap{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;font-size:20px;flex-shrink:0;border:1px solid}
+.vc-block .verdict-icon-wrap{border-color:rgba(255,45,85,0.3);background:rgba(255,45,85,0.1)}
+.vc-verify .verdict-icon-wrap{border-color:rgba(255,214,10,0.3);background:rgba(255,214,10,0.1)}
+.vc-allow .verdict-icon-wrap{border-color:rgba(0,255,136,0.3);background:rgba(0,255,136,0.1)}
+.verdict-title{font-size:16px;font-weight:800;letter-spacing:-0.3px;margin-bottom:3px}
+.vc-block .verdict-title{color:var(--red)}
+.vc-verify .verdict-title{color:var(--yellow)}
+.vc-allow .verdict-title{color:var(--green)}
+.verdict-sub{font-size:12px;color:var(--muted)}
+
+/* SHAP */
+.shap-section{flex:1}
+.shap-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.shap-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent)}
+.shap-row{display:grid;grid-template-columns:40px 1fr 50px;align-items:center;gap:12px;margin-bottom:12px;animation:fadeIn 0.3s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.shap-feat{font-size:11px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.shap-bar-bg{height:4px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden}
+.shap-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--purple),var(--cyan));transition:width 0.9s cubic-bezier(.4,0,.2,1);box-shadow:0 0 8px rgba(0,229,255,0.3)}
+.shap-val{font-size:10px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+
+/* HISTORY FOOTER */
+.history-footer{border-top:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;gap:12px;flex-shrink:0;background:rgba(0,0,0,0.2)}
+.hist-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);white-space:nowrap}
+.hist-row{display:flex;gap:6px;flex:1}
+.hist-item{background:var(--glass);border:1px solid var(--border);border-radius:7px;padding:8px 12px;text-align:center;flex-shrink:0;transition:all 0.2s;cursor:default;min-width:72px}
+.hist-item:hover{border-color:var(--border2);transform:translateY(-1px)}
+.hi-pct{font-size:14px;font-weight:800;letter-spacing:-0.5px}
+.hi-badge{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-top:1px}
+.hi-r{color:var(--red)}
+.hi-y{color:var(--yellow)}
+.hi-g{color:var(--green)}
+.hi-t{font-size:9px;color:var(--muted);margin-top:2px}
+.hist-empty{font-size:11px;color:var(--muted);opacity:0.5}
+</style>
+</head>
+<body>
+
+<div class="bg-canvas">
+  <canvas id="stars-canvas"></canvas>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div class="grid-overlay"></div>
+  <div class="noise"></div>
+</div>
+
+<nav>
+  <div class="nav-l">
+    <div class="nav-logo">
+      <div class="logo-mark"><span class="logo-glyph">⬡</span></div>
+      <span class="brand-name">FraudShield</span>
+    </div>
+    <div class="nav-sep"></div>
+    <span class="nav-sub">Enterprise Detection System</span>
+  </div>
+  <div class="status-pill"><div class="status-dot"></div>Model live — AUC 0.9900</div>
+</nav>
+
+<div class="main">
+
+  <div class="left">
+    <div class="glass-card">
+      <div class="section-title">Performance</div>
+      <div class="metrics-strip">
+        <div class="metric-item"><div class="metric-n" style="background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent">284k</div><div class="metric-l">Training samples</div></div>
+        <div class="metric-item"><div class="metric-n" style="color:var(--green)">99.96%</div><div class="metric-l">Accuracy</div></div>
+        <div class="metric-item"><div class="metric-n" style="color:var(--cyan)">0.99</div><div class="metric-l">AUC Score</div></div>
+        <div class="metric-item"><div class="metric-n" id="session-n" style="color:var(--yellow)">0</div><div class="metric-l" id="session-l">Analyzed</div></div>
+      </div>
+    </div>
+
+    <div class="glass-card" style="flex:1">
+      <div class="section-title">Transaction input</div>
+      <div class="tabs">
+        <button class="tab on" onclick="sw('sc')">Scenarios</button>
+        <button class="tab" onclick="sw('up')">Upload CSV</button>
+      </div>
+
+      <div id="tab-sc">
+        <div class="scenarios">
+          <div class="sc-card fraud-card" onclick="pick('fraud',this)">
+            <div class="sc-tag t-red">High Risk</div>
+            <div class="sc-name">Fraud</div>
+            <div class="sc-desc">Confirmed fraud transaction</div>
+          </div>
+          <div class="sc-card legit-card" onclick="pick('legit',this)">
+            <div class="sc-tag t-green">Safe</div>
+            <div class="sc-name">Legitimate</div>
+            <div class="sc-desc">Normal purchase, no flags</div>
+          </div>
+          <div class="sc-card suspect-card" onclick="pick('suspect',this)">
+            <div class="sc-tag t-yellow">Review</div>
+            <div class="sc-name">Suspicious</div>
+            <div class="sc-desc">Borderline, needs check</div>
+          </div>
+          <div class="sc-card online-card" onclick="pick('online',this)">
+            <div class="sc-tag t-cyan">Online</div>
+            <div class="sc-name">E-commerce</div>
+            <div class="sc-desc">Standard web transaction</div>
+          </div>
+        </div>
+        <div class="info-badge" id="info">Select a scenario to load transaction data.</div>
+      </div>
+
+      <div id="tab-up" style="display:none">
+        <div class="drop-zone" onclick="document.getElementById('csv-f').click()">
+          <div class="drop-ico">↑</div>
+          <div class="drop-text">Drop CSV or click to browse</div>
+          <div class="drop-text" style="font-size:10px;margin-top:4px;opacity:0.5">V1–V28, Amount_scaled, Time_scaled</div>
+        </div>
+        <input type="file" id="csv-f" accept=".csv" onchange="loadCSV(this)">
+        <div class="info-badge" id="csv-info" style="margin-top:8px">No file loaded.</div>
+      </div>
+
+      <button class="cta-btn" id="cta" onclick="analyze()" disabled style="margin-top:16px">Select a scenario</button>
+
+      <div class="model-strip" style="margin-top:12px">
+        <div class="model-chip"><div class="mc-val">RF</div><div class="mc-label">Model</div></div>
+        <div class="model-chip"><div class="mc-val">100</div><div class="mc-label">Trees</div></div>
+        <div class="model-chip"><div class="mc-val">SHAP</div><div class="mc-label">Explain</div></div>
+        <div class="model-chip"><div class="mc-val">30</div><div class="mc-label">Features</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+
+    <div class="empty-state" id="empty">
+      <div class="empty-ring">◈</div>
+      <div style="font-size:12px;color:var(--muted)">Select a scenario and analyze</div>
+    </div>
+
+    <div class="spin-state" id="spin">
+      <div class="spin-ring"></div>
+      <div class="spin-text">Running fraud analysis...</div>
+    </div>
+
+    <div class="result-state" id="res">
+      <div class="score-section">
+        <div class="score-gauge">
+          <svg class="gauge-svg" viewBox="0 0 120 120">
+            <circle class="gauge-bg" cx="60" cy="60" r="56"/>
+            <circle class="gauge-fill" id="gauge-fill" cx="60" cy="60" r="56"/>
+          </svg>
+          <div class="gauge-center">
+            <div class="gauge-pct" id="gauge-pct">—</div>
+            <div class="gauge-label">Risk</div>
+          </div>
+        </div>
+        <div class="score-info">
+          <div class="risk-level" id="risk-level">—</div>
+          <div class="risk-sub" id="risk-sub">Awaiting analysis</div>
+          <div class="track"><div class="track-fill" id="track-fill" style="width:0%"></div></div>
+          <div class="track-labels"><span>Safe</span><span>Suspicious</span><span>Fraud</span></div>
+        </div>
+      </div>
+
+      <div class="verdict-card" id="verdict">
+        <div class="verdict-icon-wrap" id="v-icon"></div>
+        <div>
+          <div class="verdict-title" id="v-title"></div>
+          <div class="verdict-sub" id="v-sub"></div>
+        </div>
+      </div>
+
+      <div class="shap-section">
+        <div class="shap-title">SHAP Explainability</div>
+        <div id="shap-rows"></div>
+      </div>
+    </div>
+
+    <div class="history-footer">
+      <div class="hist-label">History</div>
+      <div class="hist-row" id="hist-row">
+        <div class="hist-empty">No analyses yet</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// STAR PARTICLES
+const canvas = document.getElementById('stars-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+const particles = [];
+for(let i=0;i<120;i++){
+  particles.push({
+    x:Math.random()*canvas.width,
+    y:Math.random()*canvas.height,
+    r:Math.random()*1.2+0.2,
+    o:Math.random()*0.5+0.1,
+    dx:(Math.random()-0.5)*0.1,
+    dy:(Math.random()-0.5)*0.1
+  });
+}
+function drawParticles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(200,220,255,${p.o})`;
+    ctx.fill();
+    p.x+=p.dx;p.y+=p.dy;
+    if(p.x<0)p.x=canvas.width;
+    if(p.x>canvas.width)p.x=0;
+    if(p.y<0)p.y=canvas.height;
+    if(p.y>canvas.height)p.y=0;
+  });
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight});
+
+// 3D TILT EFFECT
+document.querySelectorAll('.sc-card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const x=(e.clientX-r.left)/r.width-0.5;
+    const y=(e.clientY-r.top)/r.height-0.5;
+    card.style.transform=`perspective(400px) rotateY(${x*8}deg) rotateX(${-y*8}deg) translateY(-3px) scale(1.02)`;
+  });
+  card.addEventListener('mouseleave',()=>{
+    card.style.transform='';
+  });
+});
+
+const P={
+  fraud:{info:'<b>High-risk fraud</b> — V14=−9.37, V17=−19.24. Extreme PCA anomalies confirmed fraud.',d:{V1:-16.53,V2:8.58,V3:-18.65,V4:9.51,V5:-13.79,V6:-2.83,V7:-16.70,V8:7.52,V9:-8.51,V10:-14.11,V11:5.30,V12:-10.83,V13:1.67,V14:-9.37,V15:0.36,V16:-9.90,V17:-19.24,V18:-8.40,V19:3.10,V20:-1.51,V21:1.19,V22:-1.13,V23:-2.36,V24:0.67,V25:-1.41,V26:-0.46,V27:-2.02,V28:-1.04,Amount_scaled:1.10,Time_scaled:-1.12}},
+  legit:{info:'<b>Legitimate purchase</b> — All features within normal distribution. Amount: €2.69.',d:{V1:1.19,V2:0.27,V3:0.17,V4:0.45,V5:0.06,V6:-0.08,V7:-0.08,V8:0.09,V9:-0.26,V10:-0.17,V11:1.61,V12:1.07,V13:0.49,V14:-0.14,V15:0.64,V16:0.46,V17:-0.11,V18:-0.18,V19:-0.15,V20:-0.07,V21:-0.23,V22:-0.64,V23:0.10,V24:-0.34,V25:0.17,V26:0.13,V27:-0.01,V28:0.01,Amount_scaled:-0.34,Time_scaled:-2.0}},
+  suspect:{info:'<b>Suspicious transaction</b> — Borderline case with unusual PCA deviations.',d:{V1:-2.31,V2:1.95,V3:-5.43,V4:2.87,V5:-1.22,V6:0.32,V7:-2.15,V8:0.44,V9:-1.83,V10:-3.21,V11:1.12,V12:-2.44,V13:0.54,V14:-2.87,V15:0.11,V16:-1.98,V17:-4.21,V18:-1.33,V19:0.87,V20:-0.44,V21:0.33,V22:-0.28,V23:-0.61,V24:0.19,V25:-0.37,V26:-0.12,V27:-0.51,V28:-0.27,Amount_scaled:0.45,Time_scaled:0.32}},
+  online:{info:'<b>Online purchase</b> — Standard e-commerce pattern. Amount: €149.62.',d:{V1:-1.36,V2:-0.07,V3:2.54,V4:1.38,V5:-0.34,V6:0.46,V7:0.24,V8:0.10,V9:0.36,V10:0.09,V11:-0.55,V12:-0.62,V13:-0.99,V14:-0.31,V15:1.47,V16:0.21,V17:0.07,V18:0.04,V19:0.40,V20:0.25,V21:-0.02,V22:0.28,V23:-0.11,V24:0.07,V25:0.13,V26:-0.19,V27:0.13,V28:-0.02,Amount_scaled:0.24,Time_scaled:-2.0}}
+};
+let cur=null,n=0,fc=0,hist=[];
+
+function sw(t){
+  ['sc','up'].forEach(x=>document.getElementById('tab-'+x).style.display=x===t?'block':'none');
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['sc','up'][i]===t));
+}
+function pick(k,el){
+  document.querySelectorAll('.sc-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  cur=P[k].d;
+  document.getElementById('info').innerHTML=P[k].info;
+  const b=document.getElementById('cta');b.disabled=false;b.textContent='Analyze transaction →';
+}
+function loadCSV(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    const lines=e.target.result.trim().split('\n');
+    const h=lines[0].split(',').map(x=>x.trim());
+    const v=lines[1].split(',').map(x=>parseFloat(x.trim()));
+    cur={};h.forEach((x,i)=>{cur[x]=v[i]});
+    document.getElementById('csv-info').innerHTML=`<b>Loaded:</b> ${f.name}`;
+    const b=document.getElementById('cta');b.disabled=false;b.textContent='Analyze transaction →';
+  };r.readAsText(f);
+}
+function animateCounter(el,target,duration=800){
+  const start=parseFloat(el.textContent)||0;
+  const startTime=performance.now();
+  function update(now){
+    const progress=Math.min((now-startTime)/duration,1);
+    const ease=1-Math.pow(1-progress,3);
+    el.textContent=(start+(target-start)*ease).toFixed(1)+'%';
+    if(progress<1)requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+function setGauge(pct,color){
+  const circumference=351.86;
+  const fill=document.getElementById('gauge-fill');
+  fill.style.stroke=color;
+  fill.style.strokeDashoffset=circumference-(circumference*pct/100);
+  fill.style.filter=`drop-shadow(0 0 6px ${color})`;
+}
+async function analyze(){
+  if(!cur)return;
+  document.getElementById('empty').style.display='none';
+  document.getElementById('res').classList.remove('show');
+  document.getElementById('spin').style.display='flex';
+  document.getElementById('cta').disabled=true;
+  try{
+    const r=await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cur)});
+    render(await r.json());
+  }catch(e){
+    document.getElementById('spin').style.display='none';
+    document.getElementById('empty').style.display='flex';
+    document.getElementById('empty').innerHTML='<div style="font-size:12px;color:var(--red);opacity:1;text-align:center">Cannot connect to server<br>Run app.py on port 8000</div>';
+    document.getElementById('cta').disabled=false;
+  }
+}
+function render(data){
+  document.getElementById('spin').style.display='none';
+  const res=document.getElementById('res');
+  res.classList.add('show');
+  const p=data.probability;
+  const pct=(p*100).toFixed(1);
+  const col=p>=0.9?'#ff2d55':p>=0.5?'#ffd60a':'#00ff88';
+  const rl=p>=0.9?'High Risk':p>=0.5?'Medium Risk':'Low Risk';
+  document.getElementById('gauge-pct').textContent=pct+'%';
+  document.getElementById('gauge-pct').style.color=col;
+  document.getElementById('gauge-pct').style.textShadow=`0 0 20px ${col}`;
+  setGauge(parseFloat(pct),col);
+  document.getElementById('risk-level').textContent=rl;
+  document.getElementById('risk-level').style.color=col;
+  document.getElementById('risk-level').style.textShadow=`0 0 30px ${col}40`;
+  document.getElementById('risk-sub').textContent=p>=0.9?'Immediate action required':p>=0.5?'Manual review recommended':'Transaction is safe';
+  const tf=document.getElementById('track-fill');
+  tf.style.width=pct+'%';
+  tf.style.background=`linear-gradient(90deg,${col}80,${col})`;
+  tf.style.boxShadow=`0 0 10px ${col}60`;
+  const v=document.getElementById('verdict');
+  v.className='verdict-card';
+  if(p>=0.9){v.classList.add('vc-block');document.getElementById('v-icon').textContent='✕';document.getElementById('v-title').textContent='Transaction Blocked';document.getElementById('v-sub').textContent='Card suspended — fraud team notified';}
+  else if(p>=0.5){v.classList.add('vc-verify');document.getElementById('v-icon').textContent='!';document.getElementById('v-title').textContent='Verification Required';document.getElementById('v-sub').textContent='OTP dispatched to registered number';}
+  else{v.classList.add('vc-allow');document.getElementById('v-icon').textContent='✓';document.getElementById('v-title').textContent='Transaction Approved';document.getElementById('v-sub').textContent='No suspicious activity — payment processing';}
+  const sh=document.getElementById('shap-rows');sh.innerHTML='';
+  const mx=Math.max(...Object.values(data.top_features));
+  let delay=0;
+  Object.entries(data.top_features).forEach(([f,val])=>{
+    const w=(val/mx*100).toFixed(1);
+    const div=document.createElement('div');
+    div.className='shap-row';
+    div.style.animationDelay=delay+'ms';
+    div.innerHTML=`<div class="shap-feat">${f}</div><div class="shap-bar-bg"><div class="shap-bar-fill" style="width:0%"></div></div><div class="shap-val">${val.toFixed(3)}</div>`;
+    sh.appendChild(div);
+    setTimeout(()=>{div.querySelector('.shap-bar-fill').style.width=w+'%'},100+delay);
+    delay+=80;
+  });
+  n++;if(p>=0.5)fc++;
+  document.getElementById('session-n').textContent=n;
+  document.getElementById('session-l').textContent=fc+' frauds caught';
+  const now=new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
+  const hc=p>=0.9?'hi-r':p>=0.5?'hi-y':'hi-g';
+  const ht=p>=0.9?'BLOCKED':p>=0.5?'VERIFY':'ALLOWED';
+  hist.unshift({pct,col,hc,ht,now});if(hist.length>5)hist.pop();
+  document.getElementById('hist-row').innerHTML=hist.map(h=>`<div class="hist-item"><div class="hi-pct" style="color:${h.col}">${h.pct}%</div><div class="hi-badge ${h.hc}">${h.ht}</div><div class="hi-t">${h.now}</div></div>`).join('');
+  cur=null;
+  document.getElementById('cta').disabled=false;
+  document.getElementById('cta').textContent='Select a scenario';
+  document.querySelectorAll('.sc-card').forEach(c=>c.classList.remove('sel'));
+}
+</script>
+</body>
+</html>
